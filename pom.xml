@@ -9,6 +9,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+
   <parent>
     <groupId>fr.inria.gforge.spoon</groupId>
     <artifactId>spoon-pom</artifactId>
@@ -147,7 +148,41 @@
       <artifactId>maven-invoker</artifactId>
       <version>3.0.1</version>
     </dependency>
+
+    <dependency>
+      <groupId>or.gradle</groupId>
+      <artifactId>metadata</artifactId>
+      <version>5.4.1</version>
+      <scope>system</scope>
+      <systemPath>${basedir}/gradle-api-5.4.1.jar</systemPath>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/com.android.tools.build/gradle -->
+    <dependency>
+      <groupId>com.android.tools.build</groupId>
+      <artifactId>gradle</artifactId>
+      <version>3.5.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.lingala.zip4j</groupId>
+      <artifactId>zip4j</artifactId>
+      <version>2.1.4</version>
+    </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>google</id>
+      <name>Google</name>
+      <url>https://maven.google.com</url>
+    </repository>
+    <repository>
+      <id>sprint-plugins</id>
+      <name>Spring Plugin</name>
+      <url>https://repo.spring.io/plugins-release/</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>
