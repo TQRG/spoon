@@ -547,17 +547,17 @@ public class EasyPaint extends GraphicsActivity implements
 				i.setAction( Intent.ACTION_SEND );
 				i.setType( "image/png" );
 				i.putExtra( Intent.EXTRA_SUBJECT,
-						getString( anupam.acrylic.R.string.share_title_template ) );
+							getString( anupam.acrylic.R.string.share_title_template ) );
 				i.putExtra( Intent.EXTRA_TEXT,
-						getString( anupam.acrylic.R.string.share_text_template ) );
+							getString( anupam.acrylic.R.string.share_text_template ) );
 				i.putExtra( Intent.EXTRA_STREAM, Uri.fromFile( screenshotPath ) );
 				try {
 					startActivity( Intent.createChooser( i,
-							getString( anupam.acrylic.R.string.toolbox_share_title ) ) );
+														 getString( anupam.acrylic.R.string.toolbox_share_title ) ) );
 				} catch( android.content.ActivityNotFoundException ex ) {
 					Toast.makeText( this.getApplicationContext( ),
-							anupam.acrylic.R.string.no_way_to_share,
-							Toast.LENGTH_LONG ).show( );
+									anupam.acrylic.R.string.no_way_to_share,
+									Toast.LENGTH_LONG ).show( );
 				}
 				break;
 			}
@@ -601,11 +601,11 @@ public class EasyPaint extends GraphicsActivity implements
 
 			file = new File(path,
 
-					cal.get(Calendar.YEAR) + "_" + (1 + cal.get(Calendar.MONTH)) + "_"
-							+ cal.get(Calendar.DAY_OF_MONTH) + "_"
-							+ cal.get(Calendar.HOUR_OF_DAY) + "_"
-							+ cal.get(Calendar.MINUTE) + "_" + cal.get(Calendar.SECOND)
-							+ ".png");
+			cal.get(Calendar.YEAR) + "_" + (1 + cal.get(Calendar.MONTH)) + "_"
+					+ cal.get(Calendar.DAY_OF_MONTH) + "_"
+					+ cal.get(Calendar.HOUR_OF_DAY) + "_"
+					+ cal.get(Calendar.MINUTE) + "_" + cal.get(Calendar.SECOND)
+					+ ".png");
 			output = new FileOutputStream(file);
 			copyBitmap.compress(CompressFormat.PNG, 100, output);
 		} catch (FileNotFoundException e) {
@@ -620,6 +620,9 @@ public class EasyPaint extends GraphicsActivity implements
 				}
 			}
 
+		}
+		if (copyBitmap != null) {
+			copyBitmap.recycle();
 		}
 
 		if (file != null) {
@@ -682,6 +685,9 @@ public class EasyPaint extends GraphicsActivity implements
 			Bitmap fullsize = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
 			Bitmap resized = Bitmap.createScaledBitmap(fullsize, contentView.mBitmap.getWidth(), contentView.mBitmap.getHeight(), true);
 			contentView.mBitmapBackground = resized;
+			if (resized != null) {
+				resized.recycle();
+			}
 			//contentView.mCanvas = new Canvas( contentView.mBitmapBackground );
 		} catch (IOException exception) {
 			//TODO: How should we handle this exception?

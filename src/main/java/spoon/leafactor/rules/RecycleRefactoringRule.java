@@ -304,11 +304,11 @@ public class RecycleRefactoringRule extends AbstractProcessor<CtClass> implement
 
     @Override
     public void processCase(RefactoringPhaseContext context) {
-        System.out.println("BEFORE: " + context.block.prettyprint());
+//        System.out.println("BEFORE: " + context.block.toString());
         recycleVariableDeclared(context);
         recycleVariableReassigned(context);
         recycleVariableUsed(context);
-        System.out.println("AFTER: " + context.block.prettyprint());
+//        System.out.println("AFTER: " + context.block.toString());
     }
 
     private void refactor(CtMethod method) {

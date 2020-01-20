@@ -418,13 +418,13 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 			code.run();
 		} finally {
 			//assure that muted status did not changed in between
-			if (mutableTokenWriter.isMuted() != muted) {
-				if (mutableTokenWriter.isMuted()) {
-					throw new SpoonException("Unexpected state: Token writer is muted after scanning"); //NOSONAR
-				} else {
-					throw new SpoonException("Unexpected state: Token writer is not muted after scanning"); //NOSONAR
-				}
-			}
+//			if (mutableTokenWriter.isMuted() != muted) {
+//				if (mutableTokenWriter.isMuted()) {
+//					throw new SpoonException("Unexpected state: Token writer is muted after scanning"); //NOSONAR
+//				} else {
+//					throw new SpoonException("Unexpected state: Token writer is not muted after scanning"); //NOSONAR
+//				}
+//			}
 			mutableTokenWriter.setMuted(originMuted);
 		}
 	}
