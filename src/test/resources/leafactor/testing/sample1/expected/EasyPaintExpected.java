@@ -119,7 +119,7 @@ public class EasyPaint extends GraphicsActivity implements
 			alert.setNegativeButton(R.string.continue_fuck,
 					new DialogInterface.OnClickListener() {
 						public void onClick(DialogInterface dialog,
-											int whichButton) {
+								int whichButton) {
 							Toast.makeText(getApplicationContext(),
 									R.string.here_is_your_canvas,
 									Toast.LENGTH_SHORT).show();
@@ -304,27 +304,27 @@ public class EasyPaint extends GraphicsActivity implements
 				case MotionEvent.ACTION_POINTER_DOWN: {
 					index = event.getActionIndex( );
 					id = event.getPointerId( index );
-
+					
 					if( extractingColor ) { //If the user chose the 'extract color' menu option, the touch event indicates where they want to extract the color from.
 						extractingColor = false;
-
+						
 						View v = findViewById(R.id.CanvasId);
 						v.setDrawingCacheEnabled(true);
 						Bitmap cachedBitmap = v.getDrawingCache();
-
+						
 						int newColor = cachedBitmap.getPixel( Math.round( event.getX( index ) ), Math.round( event.getY( index ) ) );
-						if (cachedBitmap != null) {
-							cachedBitmap.recycle();
-						}
-
+							if (cachedBitmap != null) {
+								cachedBitmap.recycle();
+							}
+						
 						v.destroyDrawingCache();
 						colorChanged( newColor );
-
+						
 						Toast.makeText(getApplicationContext(),
-								R.string.color_extracted,
-								Toast.LENGTH_SHORT).show();
+									   R.string.color_extracted,
+									   Toast.LENGTH_SHORT).show();
 					} else {
-
+						
 						linePath = multiLinePathManager.addLinePathWithPointer( id );
 						if( linePath != null ) {
 							linePath.touchStart( event.getX( index ), event.getY( index ) );
@@ -332,7 +332,7 @@ public class EasyPaint extends GraphicsActivity implements
 							Log.e( "anupam", "Too many fingers!" );
 						}
 					}
-
+					
 					break;
 				}
 				case MotionEvent.ACTION_MOVE:
@@ -353,13 +353,13 @@ public class EasyPaint extends GraphicsActivity implements
 					linePath = multiLinePathManager.findLinePathFromPointer(id);
 					if (linePath != null) {
 						linePath.lineTo(linePath.getLastX(), linePath.getLastY());
-
+	
 						// Commit the path to our offscreen
 						mCanvas.drawPath(linePath, mPaint);
-
+	
 						// Kill this so we don't double draw
 						linePath.reset();
-
+	
 						// Allow this LinePath to be associated to another idPointer
 						linePath.disassociateFromPointer();
 					}
@@ -391,8 +391,8 @@ public class EasyPaint extends GraphicsActivity implements
 		switch (item.getItemId()) {
 			case R.id.extract_color_menu: {
 				Toast.makeText(getApplicationContext(),
-						R.string.tap_to_extract_color,
-						Toast.LENGTH_LONG).show();
+							   R.string.tap_to_extract_color,
+							   Toast.LENGTH_LONG).show();
 				extractingColor = true;
 				return true;
 			}
@@ -419,7 +419,7 @@ public class EasyPaint extends GraphicsActivity implements
 					/* Basically what we're doing here is copying the entire foreground bitmap,
 					 * blurring it, then telling mPaint to use that instead of a solid color.
 					 */
-
+					
 					RenderScript rs = RenderScript.create( getApplicationContext( ) );
 					ScriptIntrinsicBlur script;
 					try {
@@ -428,29 +428,29 @@ public class EasyPaint extends GraphicsActivity implements
 						script = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
 					}
 					script.setRadius( 20f ); //The radius must be between 0 and 25. Smaller radius means less blur. I just picked 20 randomly. ~TheOpenSourceNinja
-
+					
 					//copy the foreground: (n API level 18+, this will be really fast because it uses a shared memory model, thus not really copying everything)
 					Allocation input = Allocation.createFromBitmap( rs, contentView.mBitmap );
 					script.setInput( input );
-
+					
 					//allocate memory for the output:
 					Allocation output = Allocation.createTyped( rs, input.getType( ) );
-
+					
 					//Blur the image:
 					script.forEach( output );
-
+					
 					//Store the blurred image as a Bitmap object:
 					Bitmap blurred = Bitmap.createBitmap( contentView.mBitmap );
 					output.copyTo( blurred );
-
+					
 					//Tell mPaint to use the blurred image:
 					Shader shader = new BitmapShader( blurred, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP );
 					mPaint.setShader( shader );
 					return true;
 				} else {
 					Toast.makeText( this.getApplicationContext( ),
-							anupam.acrylic.R.string.ability_disabled_need_newer_api_level,
-							Toast.LENGTH_LONG ).show( );
+									anupam.acrylic.R.string.ability_disabled_need_newer_api_level,
+									Toast.LENGTH_LONG ).show( );
 					return true;
 				}
 			}
@@ -461,7 +461,7 @@ public class EasyPaint extends GraphicsActivity implements
 			case R.id.size_menu: {
 				LayoutInflater inflater = ( LayoutInflater ) getSystemService( Context.LAYOUT_INFLATER_SERVICE );
 				View layout = inflater.inflate( R.layout.brush,
-						( ViewGroup ) findViewById( R.id.root ) );
+												( ViewGroup ) findViewById( R.id.root ) );
 				AlertDialog.Builder builder = new AlertDialog.Builder( this )
 						.setView( layout );
 				builder.setTitle( R.string.choose_width );
@@ -483,12 +483,12 @@ public class EasyPaint extends GraphicsActivity implements
 								getResources( ).getString(
 										R.string.your_selected_size_is ), progress + 1 ) );
 					}
-
+	
 					@Override
 					public void onStartTrackingTouch( SeekBar seekBar ) {
 						// TODO Auto-generated method stub
 					}
-
+	
 					@Override
 					public void onStopTrackingTouch( SeekBar seekBar ) {
 						// TODO Auto-generated method stub
@@ -499,7 +499,7 @@ public class EasyPaint extends GraphicsActivity implements
 			case R.id.erase_menu: {
 				LayoutInflater inflater_e = ( LayoutInflater ) getSystemService( Context.LAYOUT_INFLATER_SERVICE );
 				View layout_e = inflater_e.inflate( R.layout.brush,
-						( ViewGroup ) findViewById( R.id.root ) );
+													( ViewGroup ) findViewById( R.id.root ) );
 				AlertDialog.Builder builder_e = new AlertDialog.Builder( this )
 						.setView( layout_e );
 				builder_e.setTitle( R.string.choose_width );
@@ -521,11 +521,11 @@ public class EasyPaint extends GraphicsActivity implements
 								getResources( ).getString(
 										R.string.your_selected_size_is ), progress + 1 ) );
 					}
-
+	
 					public void onStartTrackingTouch( SeekBar seekBar ) {
 						// TODO Auto-generated method stub
 					}
-
+	
 					public void onStopTrackingTouch( SeekBar seekBar ) {
 						// TODO Auto-generated method stub
 					}
