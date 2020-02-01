@@ -30,7 +30,7 @@ import spoon.support.sniper.internal.ElementSourceFragment;
 import spoon.support.sniper.internal.MutableTokenWriter;
 import spoon.support.sniper.internal.PrinterEvent;
 import spoon.support.sniper.internal.SourceFragment;
-import spoon.support.sniper.internal.SourceFragmentContext;
+import spoon.support.sniper.internal.SourceFragmentPrinter;
 import spoon.support.sniper.internal.SourceFragmentContextList;
 import spoon.support.sniper.internal.SourceFragmentContextNormal;
 import spoon.support.sniper.internal.SourceFragmentContextPrettyPrint;
@@ -48,7 +48,7 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 
 	private final MutableTokenWriter mutableTokenWriter;
 	private ChangeResolver changeResolver;
-	private final Deque<SourceFragmentContext> sourceFragmentContextStack = new ArrayDeque<>();
+	private final Deque<SourceFragmentPrinter> sourceFragmentContextStack = new ArrayDeque<>();
 
 	/**
 	 * Creates a new {@link PrettyPrinter} which copies origin sources and prints only changes.
@@ -149,37 +149,47 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	 * @param printAction the executor of the action, we are listening for. Call it send token to output
 	 */
 	void onTokenWriterWrite(TokenType tokenType, String token, CtComment comment, Runnable printAction) {
-		onPrintEvent(new TokenPrinterEvent(tokenType, token, comment) {
+		executePrintEvent(new TokenPrinterEvent(tokenType, token, comment) {
 			@Override
-			public void print(Boolean muted) {
-				runInMutedState(muted, printAction);
+			public void print(boolean muted) {
+				boolean originMuted = mutableTokenWriter.isMuted();
+				try {
+					if (originMuted != muted) {
+						mutableTokenWriter.setMuted(muted);
+					}
+					printAction.run();
+				} finally {
+					if (originMuted != muted) {
+						mutableTokenWriter.setMuted(originMuted);
+					}
+				}
 			}
 			@Override
 			public void printSourceFragment(SourceFragment fragment, Boolean isModified) {
 				boolean isCollectionStarted = false;
 				if (fragment instanceof CollectionSourceFragment) {
-					CollectionSourceFragment csf = (CollectionSourceFragment) fragment;
 					//we started scanning of collection of elements
-					SourceFragmentContext listContext = csf.isOrdered()
-							? new SourceFragmentContextList(mutableTokenWriter, null, csf.getItems(), getChangeResolver())
-							: new SourceFragmentContextSet(mutableTokenWriter, null, csf.getItems(), getChangeResolver());
+					SourceFragmentPrinter listContext = getCollectionContext(null, (CollectionSourceFragment) fragment, isModified);
 					//push the context of this collection
-					sourceFragmentContextStack.push(listContext);
+					pushContext(listContext);
 					isCollectionStarted = true;
 				}
+
 				if (isModified == null || isModified) {
 					//print origin token
 					printAction.run();
 					return;
-				}
-				mutableTokenWriter.getPrinterHelper().directPrint(fragment.getSourceCode());
-				if (isCollectionStarted) {
-					mutableTokenWriter.setMuted(true);
+				} else {
+					mutableTokenWriter.getPrinterHelper().directPrint(fragment.getSourceCode());
 				}
 			}
 		});
 	}
 
+	private void pushContext(SourceFragmentPrinter listContext) {
+		listContext.onPush();
+		sourceFragmentContextStack.push(listContext);
+	}
 
 
 	private static boolean hasImplicitAncestor(CtElement el) {
@@ -217,9 +227,9 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 						element,
 						Collections.singletonList(esf),
 						new ChangeResolver(getChangeCollector(), element)),
-					() -> onPrintEvent(new ElementPrinterEvent(role, element) {
+					() -> executePrintEvent(new ElementPrinterEvent(role, element) {
 						@Override
-						public void print(Boolean muted) {
+						public void print(boolean muted) {
 							superScanInContext(element, SourceFragmentContextPrettyPrint.INSTANCE, muted);
 						}
 
@@ -244,9 +254,9 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	public SniperJavaPrettyPrinter scan(CtElement element) {
 		if (element != null) {
 			CtRole role = getRoleInCompilationUnit(element);
-			onPrintEvent(new ElementPrinterEvent(role, element) {
+			executePrintEvent(new ElementPrinterEvent(role, element) {
 				@Override
-				public void print(Boolean muted) {
+				public void print(boolean muted) {
 					superScanInContext(element, SourceFragmentContextPrettyPrint.INSTANCE, muted);
 				}
 				@Override
@@ -269,19 +279,19 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	/**
 	 * Called whenever {@link DefaultJavaPrettyPrinter} scans/prints an element or writes a token
 	 */
-	private void onPrintEvent(PrinterEvent event) {
-		SourceFragmentContext sfc = detectCurrentContext(event);
+	private void executePrintEvent(PrinterEvent event) {
+		SourceFragmentPrinter sfc = detectCurrentContext(event);
 		if (sfc == null) {
 			throw new SpoonException("Missing SourceFragmentContext");
 		}
 		//there is an context let it handle scanning
 		if (mutableTokenWriter.isMuted()) {
 			//it is already muted by an parent. Simply scan and ignore all tokens,
-			event.print(null);
+			event.print(true);
 			return;
 		}
 		//let context handle the event
-		sfc.onPrintEvent(event);
+		sfc.print(event);
 	}
 
 	/**
@@ -290,13 +300,12 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	 * @param event a to be processed {@link PrinterEvent}
 	 * @return context which can be used to process `event`
 	 */
-	private SourceFragmentContext detectCurrentContext(PrinterEvent event) {
-		SourceFragmentContext sfc;
-		while ((sfc = sourceFragmentContextStack.peek()) != null && sfc.matchesPrinterEvent(event) == false) {
+	private SourceFragmentPrinter detectCurrentContext(PrinterEvent event) {
+		SourceFragmentPrinter sfc;
+		while ((sfc = sourceFragmentContextStack.peek()) != null && sfc.knowsHowToPrint(event) == false) {
 			//this context handles only subset of roles, which just finished
 			//leave it and return back to parent context
-			sourceFragmentContextStack.pop();
-			sfc.onFinished();
+			sfc = popSourceFragmentContext();
 		}
 		return sfc;
 	}
@@ -312,28 +321,26 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 		if (mutableTokenWriter.isMuted()) {
 			throw new SpoonException("Unexpected state of sniper pretty printer. TokenWriter is muted.");
 		}
+
+
 		//it is not muted yet, so this element or any sibling is modified
 		if (fragment == null) {
 			throw new SpoonException("Missing source fragment. Call PrintEvent#print instead.");
 		}
 		//we have sources of fragment
 		if (fragment instanceof CollectionSourceFragment) {
-			CollectionSourceFragment csf = (CollectionSourceFragment) fragment;
 			//we started scanning of collection of elements
-			SourceFragmentContext listContext = csf.isOrdered()
-					? new SourceFragmentContextList(mutableTokenWriter, element, csf.getItems(), getChangeResolver())
-					: new SourceFragmentContextSet(mutableTokenWriter, element, csf.getItems(), getChangeResolver());
+			SourceFragmentPrinter listContext = getCollectionContext(element, (CollectionSourceFragment) fragment, isFragmentModified);
 			//push the context of this collection
-			sourceFragmentContextStack.push(listContext);
+			pushContext(listContext);
+
+
 			//and scan first element of that collection again in new context of that collection
 			if (Boolean.FALSE.equals(isFragmentModified)) {
+				// we print the original source code
 				mutableTokenWriter.getPrinterHelper().directPrint(fragment.getSourceCode());
-				//and mute the token writer and let DJPP scan it and ignore everything
-				mutableTokenWriter.setMuted(true);
-				//TODO check if DJPP needs this call somewhere (because of some state)... may be we can skip this scan completely??
-				scan(element);
-				//and keep it muted until SourceFragmentContextList is finished
 			} else {
+				// we print it normally
 				scan(element);
 			}
 		} else if (fragment instanceof ElementSourceFragment) {
@@ -364,6 +371,45 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 		}
 	}
 
+	private SourceFragmentPrinter getCollectionContext(CtElement element, CollectionSourceFragment csf, boolean isModified) {
+		return csf.isOrdered()
+				? new SourceFragmentContextList(mutableTokenWriter, element, csf.getItems(), getChangeResolver()) {
+			@Override
+			public void onPush() {
+				super.onPush();
+				if (!isModified) {
+					mutableTokenWriter.setMuted(true);
+				}
+			}
+
+			@Override
+			public void onFinished() {
+				super.onFinished();
+				if (!isModified) {
+					mutableTokenWriter.setMuted(false);
+				}
+			}
+
+		}
+				: new SourceFragmentContextSet(mutableTokenWriter, element, csf.getItems(), getChangeResolver()) {
+			@Override
+			public void onPush() {
+				super.onPush();
+				if (!isModified) {
+					mutableTokenWriter.setMuted(true);
+				}
+			}
+
+			@Override
+			public void onFinished() {
+				super.onFinished();
+				if (!isModified) {
+					mutableTokenWriter.setMuted(false);
+				}
+			}
+		};
+	}
+
 	/**
 	 * Call normal java printing in defined `context`
 	 * @param element to be printed element
@@ -373,10 +419,19 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	 * 	false - not muted
 	 * 	null - same like before
 	 */
-	private void superScanInContext(CtElement element, SourceFragmentContext context, Boolean muted) {
-		runInContext(context,
-				() -> runInMutedState(muted,
-						() -> super.scan(element)));
+	private void superScanInContext(CtElement element, SourceFragmentPrinter context, boolean muted) {
+		boolean originMuted = mutableTokenWriter.isMuted();
+		try {
+			if (originMuted != muted) {
+				mutableTokenWriter.setMuted(muted);
+			}
+			runInContext(context,
+					() -> super.scan(element));
+		} finally {
+			if (originMuted != muted) {
+				mutableTokenWriter.setMuted(originMuted);
+			}
+		}
 	}
 
 	/**
@@ -384,48 +439,30 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	 * @param context a to be entered `context`
 	 * @param code a to be processed {@link Runnable}
 	 */
-	private void runInContext(SourceFragmentContext context, Runnable code) {
-		sourceFragmentContextStack.push(context);
+	private void runInContext(SourceFragmentPrinter context, Runnable code) {
+		pushContext(context);
 		try {
 			code.run();
 		} finally {
-			//remove `context` and all it's child contexts
+			// we make sure to remve all contexts that have been pushed so far
+			// and we also remove parameter `context`
+			// so that we can leave the sourceFragmentContextStack clean
 			while (true) {
 				if (sourceFragmentContextStack.isEmpty()) {
-					throw new SpoonException("Inconsistent sourceFragmentContextStack");
+					throw new SpoonException("Inconsistent sourceFragmentContextStack"); //NOSONAR
 				}
-				SourceFragmentContext c = sourceFragmentContextStack.pop();
-				c.onFinished();
+				SourceFragmentPrinter c = popSourceFragmentContext();
 				if (c == context) {
 					break;
 				}
 			}
 		}
 	}
-	/**
-	 * Run code using {@link MutableTokenWriter} in defined state.
-	 * After this function leaves, the muted status is restored.
-	 * @param muted required muted status
-	 * @param code to be processed {@link Runnable}
-	 */
-	private void runInMutedState(Boolean muted, Runnable code) {
-		boolean originMuted = mutableTokenWriter.isMuted();
-		if (muted == null) {
-			muted = originMuted;
-		}
-		try {
-			mutableTokenWriter.setMuted(muted);
-			code.run();
-		} finally {
-			//assure that muted status did not changed in between
-			if (mutableTokenWriter.isMuted() != muted) {
-				if (mutableTokenWriter.isMuted()) {
-					throw new SpoonException("Unexpected state: Token writer is muted after scanning");
-				} else {
-					throw new SpoonException("Unexpected state: Token writer is not muted after scanning");
-				}
-			}
-			mutableTokenWriter.setMuted(originMuted);
-		}
+
+	/** makes the two atomic operations together pop+finish to maintain core contracts */
+	private SourceFragmentPrinter popSourceFragmentContext() {
+		SourceFragmentPrinter c = sourceFragmentContextStack.pop();
+		c.onFinished();
+		return c;
 	}
 }

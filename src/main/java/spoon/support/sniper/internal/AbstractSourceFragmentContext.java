@@ -23,7 +23,7 @@ import static spoon.support.sniper.internal.ElementSourceFragment.isSpaceFragmen
 /**
  * Knows how to handle actually printed {@link CtElement} or it's part
  */
-abstract class AbstractSourceFragmentContext implements SourceFragmentContext {
+abstract class AbstractSourceFragmentContext implements SourceFragmentPrinter {
 	protected final MutableTokenWriter mutableTokenWriter;
 	protected final List<SourceFragment> childFragments;
 	protected final ChangeResolver changeResolver;
@@ -41,7 +41,7 @@ abstract class AbstractSourceFragmentContext implements SourceFragmentContext {
 	}
 
 	@Override
-	public void onPrintEvent(PrinterEvent event) {
+	public void print(PrinterEvent event) {
 		if (event instanceof TokenPrinterEvent) {
 			TokenPrinterEvent tpe = (TokenPrinterEvent) event;
 			if (tpe.getType().isTab()) {
@@ -50,7 +50,7 @@ abstract class AbstractSourceFragmentContext implements SourceFragmentContext {
 				//but may be it is not good idea
 
 				//send all inc/dec tab to printer helper to have configured expected indentation
-				event.print(null);
+				event.print(false);
 				return;
 			}
 			if (tpe.getType().isWhiteSpace()) {
@@ -284,5 +284,9 @@ abstract class AbstractSourceFragmentContext implements SourceFragmentContext {
 			runnable.run();
 		}
 		separatorActions.clear();
+	}
+
+	@Override
+	public void onPush() {
 	}
 }

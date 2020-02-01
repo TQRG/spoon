@@ -29,7 +29,7 @@ abstract class AbstractSourceFragmentContextCollection extends AbstractSourceFra
 	}
 
 	@Override
-	public boolean matchesPrinterEvent(PrinterEvent event) {
+	public boolean knowsHowToPrint(PrinterEvent event) {
 		CtRole role = event.getRole();
 		if (!hasNextChildToken()) {
 			//there are no more tokens to process. Leave this context
@@ -77,16 +77,14 @@ abstract class AbstractSourceFragmentContextCollection extends AbstractSourceFra
 
 	@Override
 	public void onFinished() {
-		//we are at the end of the list of elements. Printer just tries to print something out of this context.
+		// we are at the end of the list of elements. Printer just tries to print something out of this context.
 		if (mutableTokenWriter.isMuted() == false) {
 			//print list suffix
 			String suffix = getSuffixSpace();
 			if (suffix != null) {
 				//we have origin source code for that list suffix
 				mutableTokenWriter.getPrinterHelper().directPrint(suffix);
-				separatorActions.clear();
 			}
 		}
-		mutableTokenWriter.setMuted(false);
 	}
 }
