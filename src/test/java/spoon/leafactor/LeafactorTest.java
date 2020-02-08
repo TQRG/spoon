@@ -24,10 +24,14 @@ import org.junit.Test;
 
 import spoon.Launcher;
 import spoon.compiler.Environment;
-import spoon.leafactor.engine.CompilationUnitGroup;
-import spoon.leafactor.engine.RefactoringRule;
+import spoon.leafactor.engine.*;
 import spoon.leafactor.engine.logging.IterationLogger;
 import spoon.leafactor.rules.RecycleRefactoringRule;
+import spoon.leafactor.rules.ViewHolderRefactoringRule;
+import spoon.processing.ProcessorProperties;
+import spoon.processing.TraversalStrategy;
+import spoon.reflect.declaration.CtElement;
+import spoon.reflect.factory.Factory;
 import spoon.support.sniper.SniperJavaPrettyPrinter;
 
 import java.io.File;
@@ -39,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -144,6 +149,178 @@ public class LeafactorTest {
         String producedEasyPaintJavaFileContent = new String(Files.readAllBytes(Paths.get(outputDirectory.getAbsolutePath() + "/anupam/acrylic/EasyPaint.java")), StandardCharsets.UTF_8);
         // the expected value encoded in was incorrect EasyPaintExpected.java
         String expectedEasyPaintJavaFileContent = new String(Files.readAllBytes(Paths.get("src/test/resources/leafactor/testing/sample1/expected/EasyPaintExpected.java")), StandardCharsets.UTF_8);
+        assertEquals(expectedEasyPaintJavaFileContent, producedEasyPaintJavaFileContent);
+    }
+
+    @Test
+    public void runTest2() throws IOException, IllegalArgumentException, ArtifactResolutionException {
+        // Creating the spoon launcher
+        Launcher launcher = new Launcher();
+        Environment environment = launcher.getEnvironment();
+//        List<String> dependencies = new ArrayList<>();
+        // this is not required to reproduce the bug
+//        dependencies.add(downloadAndroidPlatform());
+
+        // Preparing to Repository system for maven dependency resolution.
+//        RepositorySystem repositorySystem = newSystem();
+//        File temp = Files.createTempDirectory("maven-repo").toFile();
+//        LocalRepository localRepository = new LocalRepository(temp, "simple");
+//        RepositorySystemSession repositorySystemSession = newSession(repositorySystem, localRepository);
+        // Download an artifact from maven remote repo
+//        Artifact artifact = new DefaultArtifact("com.android.support:appcompat-v7:aar:28.0.0");
+//        dependencies.add(resolveArtifact(repositorySystem, repositorySystemSession, getRemoteRepos(), artifact).getArtifact().getFile().getAbsolutePath());
+
+//        environment.setSourceClasspath(dependenciesToClassPath(dependencies));
+        environment.setNoClasspath(true);
+        environment.setAutoImports(true);
+        environment.setPrettyPrinterCreator(() -> {
+            SniperJavaPrettyPrinter sniperJavaPrettyPrinter = new SniperJavaPrettyPrinter(environment);
+            sniperJavaPrettyPrinter.setIgnoreImplicit(false);
+            return sniperJavaPrettyPrinter;
+        });
+
+        CompilationUnitGroup compilationUnitGroup = new CompilationUnitGroup(launcher);
+
+        File outputDirectory = Files.createTempDirectory("output").toFile();
+        compilationUnitGroup.setSourceOutputDirectory(outputDirectory);
+
+        // always prefer one single test when you propose a failing test case
+        compilationUnitGroup.add(new File("src/test/resources/leafactor/testing/sample2/src/CommentAdapterHelper.java"));
+
+        List<RefactoringRule> refactoringRules = new ArrayList<>();
+        IterationLogger logger = new IterationLogger();
+
+        refactoringRules.add(new RefactoringRule() {
+            @Override
+            public void detectCase(DetectionPhaseContext context) {
+
+            }
+
+            @Override
+            public void processCase(RefactoringPhaseContext context) {
+
+            }
+
+            @Override
+            public void transformCase(TransformationPhaseContext context) {
+
+            }
+
+            @Override
+            public void onSetup(DetectionPhaseContext context) {
+
+            }
+
+            @Override
+            public void onWillIterate(DetectionPhaseContext context) {
+
+            }
+
+            @Override
+            public void onDidIterate(DetectionPhaseContext context) {
+
+            }
+
+            @Override
+            public void onWillTransform(TransformationPhaseContext context) {
+
+            }
+
+            @Override
+            public void onWillTransformCase(TransformationPhaseContext context) {
+
+            }
+
+            @Override
+            public void onDidTransformCase(TransformationPhaseContext context) {
+
+            }
+
+            @Override
+            public void onWillRefactor(RefactoringPhaseContext context) {
+
+            }
+
+            @Override
+            public void onWillRefactorCase(RefactoringPhaseContext context) {
+
+            }
+
+            @Override
+            public void onDidRefactorCase(RefactoringPhaseContext context) {
+
+            }
+
+            @Override
+            public TraversalStrategy getTraversalStrategy() {
+                return null;
+            }
+
+            @Override
+            public Environment getEnvironment() {
+                return null;
+            }
+
+            @Override
+            public boolean isToBeProcessed(CtElement candidate) {
+                return false;
+            }
+
+            @Override
+            public void process(CtElement element) {
+
+            }
+
+            @Override
+            public void process() {
+
+            }
+
+            @Override
+            public Set<Class<? extends CtElement>> getProcessedElementTypes() {
+                return null;
+            }
+
+            @Override
+            public void processingDone() {
+
+            }
+
+            @Override
+            public void init() {
+
+            }
+
+            @Override
+            public void initProperties(ProcessorProperties properties) {
+
+            }
+
+            @Override
+            public void interrupt() {
+
+            }
+
+            @Override
+            public Factory getFactory() {
+                return null;
+            }
+
+            @Override
+            public void setFactory(Factory factory) {
+
+            }
+        });
+//        refactoringRules.add(new RecycleRefactoringRule(logger));
+//                refactoringRules.add(new ViewHolderRefactoringRule(logger));
+//                refactoringRules.add(new DrawAllocationRefactoringRule(logger));
+//                refactoringRules.add(new WakeLockRefactoringRule(logger));
+
+        compilationUnitGroup.run(refactoringRules);
+        System.out.println("OutputDirectory: " + outputDirectory);
+        String producedEasyPaintJavaFileContent = new String(Files.readAllBytes(Paths.get(outputDirectory.getAbsolutePath() + "/me/ccrama/redditslide/Adapters/CommentAdapterHelper.java")), StandardCharsets.UTF_8);
+        // the expected value encoded in was incorrect EasyPaintExpected.java
+        String expectedEasyPaintJavaFileContent = new String(Files.readAllBytes(Paths.get("src/test/resources/leafactor/testing/sample2/expected/CommentAdapterHelperExpected.java")), StandardCharsets.UTF_8);
         assertEquals(expectedEasyPaintJavaFileContent, producedEasyPaintJavaFileContent);
     }
 

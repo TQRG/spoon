@@ -12,6 +12,7 @@ import java.util.Deque;
 import spoon.OutputType;
 import spoon.SpoonException;
 import spoon.compiler.Environment;
+import spoon.reflect.code.CtCatchVariable;
 import spoon.reflect.code.CtComment;
 import spoon.reflect.cu.CompilationUnit;
 import spoon.reflect.cu.position.NoSourcePosition;
@@ -211,6 +212,11 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	@Override
 	public String printElement(CtElement element) {
 		applyPreProcessors(element);
+
+		if(element instanceof CtCatchVariable) {
+			System.out.println(" HELLO ");
+		}
+
 		if (element != null && !hasImplicitAncestor(element)) {
 			CompilationUnit compilationUnit = element.getPosition().getCompilationUnit();
 			if (compilationUnit != null
@@ -252,6 +258,10 @@ public class SniperJavaPrettyPrinter extends DefaultJavaPrettyPrinter {
 	 */
 	@Override
 	public SniperJavaPrettyPrinter scan(CtElement element) {
+		if(element instanceof CtCatchVariable) {
+			System.out.println(" TEST ");
+		}
+
 		if (element != null) {
 			CtRole role = getRoleInCompilationUnit(element);
 			executePrintEvent(new ElementPrinterEvent(role, element) {
